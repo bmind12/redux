@@ -1,17 +1,21 @@
 function createStore(reducer, preloadedState = {}) {
   // TODO: [enhancer]
-  let store = preloadedState;
+  let state = preloadedState;
   let reduce = reducer;
-  const listeners = [];
+  let listeners = [];
 
   return {
-    getState: () => store,
+    getState: () => state,
     dispatch: (action) => {
-      store = reduce({ ...store }, action);
-      listeners.forEach((listener) => listener(store));
+      state = reduce(state, action);
+      listeners.forEach((listener) => listener());
     },
     subscribe: (listener) => {
       listeners.push(listener);
+
+      return () => {
+        listeners.filter((l) => l !== listener);
+      };
     },
     replaceReducer: (nextReducer) => {
       reduce = nextReducer;
@@ -62,9 +66,10 @@ const reducers = combineReducers({
 
 const { getState, dispatch, subscribe } = createStore(reducers);
 
-subscribe(console.log);
+const unsubscribe = subscribe(() => console.log(getState()));
 dispatch({ type: "INCREMENT" });
 dispatch({ type: "INCREMENT" });
 dispatch({ type: "CHANGE", payload: "hello" });
+unsubscribe();
 dispatch({ type: "DECREMENT" });
 dispatch({ type: "RESET" });
