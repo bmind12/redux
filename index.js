@@ -14,7 +14,7 @@ function createStore(reducer, preloadedState = {}) {
       listeners.push(listener);
 
       return () => {
-        listeners.filter((l) => l !== listener);
+        listeners = listeners.filter((l) => l !== listener);
       };
     },
     replaceReducer: (nextReducer) => {
@@ -35,7 +35,11 @@ function combineReducers(reducers) {
 }
 // function applyMiddleware(...middlewares) {}
 // function bindActionCreators(actionCreators, dispatch) {}
-// function compose(...functions) {}
+function compose(...functions) {
+  return (arg) => {
+    return functions.reduceRight((result, fn) => fn(result), arg);
+  };
+}
 
 function counter(state = 0, action) {
   switch (action.type) {
