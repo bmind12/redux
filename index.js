@@ -2,13 +2,17 @@ function createStore(reducer, preloadedState = {}) {
   // TODO: [enhancer]
   let store = preloadedState;
   let reduce = reducer;
+  const listeners = [];
 
   return {
     getState: () => store,
     dispatch: (action) => {
       store = reduce({ ...store }, action);
+      listeners.forEach((listener) => listener(store));
     },
-    // subscribe, // subscribe(listener)
+    subscribe: (listener) => {
+      listeners.push(listener);
+    },
     replaceReducer: (nextReducer) => {
       reduce = nextReducer;
     },
@@ -28,22 +32,6 @@ function combineReducers(reducers) {
 // function applyMiddleware(...middlewares) {}
 // function bindActionCreators(actionCreators, dispatch) {}
 // function compose(...functions) {}
-
-const reducers = combineReducers({
-  counter,
-  input,
-});
-
-const { getState, dispatch } = createStore(reducers);
-
-dispatch({ type: "INCREMENT" });
-console.log(getState());
-dispatch({ type: "INCREMENT" });
-dispatch({ type: "CHANGE", payload: "hello" });
-console.log(getState());
-dispatch({ type: "DECREMENT" });
-dispatch({ type: "RESET" });
-console.log(getState());
 
 function counter(state = 0, action) {
   switch (action.type) {
@@ -66,3 +54,17 @@ function input(state = "", action) {
       return state;
   }
 }
+
+const reducers = combineReducers({
+  counter,
+  input,
+});
+
+const { getState, dispatch, subscribe } = createStore(reducers);
+
+subscribe(console.log);
+dispatch({ type: "INCREMENT" });
+dispatch({ type: "INCREMENT" });
+dispatch({ type: "CHANGE", payload: "hello" });
+dispatch({ type: "DECREMENT" });
+dispatch({ type: "RESET" });
