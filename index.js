@@ -1,14 +1,11 @@
 function createStore(reducer, preloadedState = {}) {
   // TODO: [enhancer]
-  const store = preloadedState;
-  const reducers = reducer;
+  let store = preloadedState;
 
   return {
     getState: () => store,
     dispatch: (action) => {
-      Object.entries(reducers).forEach((reducer) => {
-        store[reducer[0]] = reducer[1](store[reducer[0]], action);
-      });
+      store = reducer({ ...store }, action);
     },
     // subscribe, // subscribe(listener)
     // replaceReducer, // replaceReducer(nextReducer)
@@ -16,7 +13,14 @@ function createStore(reducer, preloadedState = {}) {
 }
 
 function combineReducers(reducers) {
-  return reducers;
+  return (store, action) => {
+    Object.entries(reducers).forEach((reducer) => {
+      const [name, reduce] = reducer;
+      store[name] = reduce(store[name], action);
+    });
+
+    return store;
+  };
 }
 // function applyMiddleware(...middlewares) {}
 // function bindActionCreators(actionCreators, dispatch) {}
