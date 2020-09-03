@@ -1,14 +1,17 @@
 function createStore(reducer, preloadedState = {}) {
   // TODO: [enhancer]
   let store = preloadedState;
+  let reduce = reducer;
 
   return {
     getState: () => store,
     dispatch: (action) => {
-      store = reducer({ ...store }, action);
+      store = reduce({ ...store }, action);
     },
     // subscribe, // subscribe(listener)
-    // replaceReducer, // replaceReducer(nextReducer)
+    replaceReducer: (nextReducer) => {
+      reduce = nextReducer;
+    },
   };
 }
 
