@@ -1,28 +1,45 @@
-function createStore(reducer) {
-  // TODO: , [preloadedState], [enhancer]
-  const store = {
-    reducer: 0, // TODO: change
-  };
+function createStore(reducer, preloadedState = {}) {
+  // TODO: [enhancer]
+  let state = preloadedState;
+  let reduce = reducer;
+  let listeners = [];
 
   return {
-    getState: () => store,
+    getState: () => state,
     dispatch: (action) => {
-      store.reducer = reducer(store.reducer, action);
+      state = reduce(state, action);
+      listeners.forEach((listener) => listener());
     },
-    // subscribe, // subscribe(listener)
-    // replaceReducer, // replaceReducer(nextReducer)
+    subscribe: (listener) => {
+      listeners.push(listener);
+
+      return () => {
+        listeners = listeners.filter((l) => l !== listener);
+      };
+    },
+    replaceReducer: (nextReducer) => {
+      reduce = nextReducer;
+    },
   };
 }
-// function combineReducers(reducers) {}
+
+function combineReducers(reducers) {
+  return (store, action) => {
+    Object.entries(reducers).forEach((reducer) => {
+      const [name, reduce] = reducer;
+      store[name] = reduce(store[name], action);
+    });
+
+    return store;
+  };
+}
 // function applyMiddleware(...middlewares) {}
 // function bindActionCreators(actionCreators, dispatch) {}
-// function compose(...functions) {}
-
-const { getState, dispatch } = createStore(counter);
-
-console.log(getState());
-dispatch({ type: "INCREMENT" });
-console.log(getState());
+function compose(...functions) {
+  return (arg) => {
+    return functions.reduceRight((result, fn) => fn(result), arg);
+  };
+}
 
 function counter(state = 0, action) {
   switch (action.type) {
@@ -34,3 +51,29 @@ function counter(state = 0, action) {
       return state;
   }
 }
+
+function input(state = "", action) {
+  switch (action.type) {
+    case "CHANGE":
+      return action.payload;
+    case "RESET":
+      return "";
+    default:
+      return state;
+  }
+}
+
+const reducers = combineReducers({
+  counter,
+  input,
+});
+
+const { getState, dispatch, subscribe } = createStore(reducers);
+
+const unsubscribe = subscribe(() => console.log(getState()));
+dispatch({ type: "INCREMENT" });
+dispatch({ type: "INCREMENT" });
+dispatch({ type: "CHANGE", payload: "hello" });
+unsubscribe();
+dispatch({ type: "DECREMENT" });
+dispatch({ type: "RESET" });
