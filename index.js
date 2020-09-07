@@ -1,5 +1,8 @@
-function createStore(reducer, preloadedState = {}) {
-  // TODO: [enhancer]
+function createStore(reducer, preloadedState = {}, enhancer) {
+  if (enhancer) {
+    return enhancer(createStore)(reducer, preloadedState);
+  }
+
   let state = preloadedState;
   let reduce = reducer;
   let listeners = [];
@@ -24,17 +27,37 @@ function createStore(reducer, preloadedState = {}) {
 }
 
 function combineReducers(reducers) {
-  return (store, action) => {
-    Object.entries(reducers).forEach((reducer) => {
-      const [name, reduce] = reducer;
-      store[name] = reduce(store[name], action);
-    });
+  return (state = {}, action) => {
+    return Object.keys(reducers).reduce((nextState, key) => {
+      nextState[key] = reducers[key](state[key], action);
 
-    return store;
+      return nextState;
+    }, {});
   };
 }
-// function applyMiddleware(...middlewares) {}
+
+function applyMiddleware(...middlewares) {
+  return (createStore) => (reducer, preloadedState) => {
+    const store = createStore(reducer, preloadedState);
+    let dispatch;
+
+    const middlewareAPI = {
+      getState: store.getState,
+      dispatch: (action) => dispatch(action),
+    };
+    const chain = middlewares.map((middleware) => middleware(middlewareAPI));
+
+    dispatch = compose(...chain)(store.dispatch);
+
+    return {
+      ...store,
+      dispatch,
+    };
+  };
+}
+
 // function bindActionCreators(actionCreators, dispatch) {}
+
 function compose(...functions) {
   return (arg) => {
     return functions.reduceRight((result, fn) => fn(result), arg);
@@ -68,7 +91,26 @@ const reducers = combineReducers({
   input,
 });
 
-const { getState, dispatch, subscribe } = createStore(reducers);
+const { getState, dispatch, subscribe } = createStore(
+  reducers,
+  {},
+  applyMiddleware(logger)
+);
+
+function logger({ getState }) {
+  return (next) => (action) => {
+    console.log("will dispatch", action);
+
+    // Call the next dispatch method in the middleware chain.
+    const returnValue = next(action);
+
+    console.log("state after dispatch", getState());
+
+    // This will likely be the action itself, unless
+    // a middleware further in chain changed it.
+    return returnValue;
+  };
+}
 
 const unsubscribe = subscribe(() => console.log(getState()));
 dispatch({ type: "INCREMENT" });
