@@ -56,7 +56,17 @@ function applyMiddleware(...middlewares) {
   };
 }
 
-// function bindActionCreators(actionCreators, dispatch) {}
+function bindActionCreators(actionCreators, dispatch) {
+  return Object.keys(actionCreators).reduce((boundActionCreators, key) => {
+    const actionCreator = actionCreators[key];
+
+    boundActionCreators[key] = (...args) => {
+      return dispatch(actionCreator.apply(null, args));
+    };
+
+    return boundActionCreators;
+  }, {});
+}
 
 function compose(...functions) {
   return (arg) => {
@@ -112,10 +122,25 @@ function logger({ getState }) {
   };
 }
 
+const increment = () => ({ type: "INCREMENT" });
+const decrement = () => ({ type: "DECREMENT" });
+const reset = () => ({ type: "RESET" });
+const change = (value) => ({ type: "CHANGE", payload: value });
+
 const unsubscribe = subscribe(() => console.log(getState()));
-dispatch({ type: "INCREMENT" });
-dispatch({ type: "INCREMENT" });
-dispatch({ type: "CHANGE", payload: "hello" });
+const boundAC = bindActionCreators(
+  {
+    increment,
+    decrement,
+    reset,
+    change,
+  },
+  dispatch
+);
+
+boundAC.increment();
+boundAC.increment();
+boundAC.change("HEhtLLOo");
 unsubscribe();
-dispatch({ type: "DECREMENT" });
-dispatch({ type: "RESET" });
+boundAC.decrement();
+boundAC.reset();
